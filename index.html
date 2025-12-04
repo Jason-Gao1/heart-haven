@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心屿 Heart Haven</title>
+    <style>
+        /* --- 全局样式 (莫兰迪色系 + 毛玻璃) --- */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --active-color: #66a6ff;
+            --text-color: #4a5568;
+        }
+
+        body {
+            font-family: 'PingFang SC', sans-serif;
+            background-image: var(--primary-gradient);
+            background-attachment: fixed;
+            background-size: cover;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 600px;
+            height: 100vh;
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.1);
+        }
+
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            padding-bottom: 70px;
+        }
+
+        /* --- 页面 1: 聊天 --- */
+        #page-chat { display: flex; flex-direction: column; height: 100%; }
+        .header { padding: 15px; text-align: center; background: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(255,255,255,0.5); }
+        .header h1 { margin: 0; font-size: 1.1rem; color: #555; }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .message { max-width: 80%; padding: 12px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.5; animation: fadeIn 0.3s; }
+        .ai-message { background: #fff; align-self: flex-start; border-bottom-left-radius: 4px; }
+        .user-message { background: linear-gradient(120deg, #89f7fe, #66a6ff); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .input-area { padding: 15px; background: rgba(255,255,255,0.8); display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; border-radius: 20px; border: none; outline: none; }
+        .send-btn { border: none; background: #66a6ff; color: white; padding: 0 20px; border-radius: 20px; cursor: pointer; }
+
+        /* --- 页面 2: 木鱼 --- */
+        #page-game { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; }
+        .muyu-container { position: relative; cursor: pointer; transition: transform 0.05s; -webkit-tap-highlight-color: transparent; }
+        .muyu-icon { font-size: 120px; user-select: none; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.1)); }
+        .merit-counter { font-size: 1.5rem; margin-top: 20px; color: #555; font-weight: bold; }
+        .merit-popup { position: absolute; top: 0; left: 50%; transform: translateX(-50%); font-weight: bold; color: #66a6ff; pointer-events: none; animation: floatUp 0.8s ease-out forwards; font-size: 1.2rem; }
+        @keyframes floatUp { 0% { opacity: 1; top: -30px; transform: translateX(-50%) scale(1); } 100% { opacity: 0; top: -100px; transform: translateX(-50%) scale(1.5); } }
+
+        /* --- 页面 3: 语录 --- */
+        #page-quote { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 30px; }
+        .quote-card { background: rgba(255,255,255,0.8); padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; position: relative; }
+        .quote-text { font-size: 1.2rem; line-height: 1.8; color: #444; font-style: italic; margin-bottom: 30px; }
+        .refresh-btn { background: linear-gradient(120deg, #f6d365 0%, #fda085 100%); border: none; padding: 10px 25px; border-radius: 25px; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+
+        /* --- 底部导航 --- */
+        .bottom-nav { position: absolute; bottom: 0; width: 100%; height: 65px; background: rgba(255,255,255,0.9); border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-around; align-items: center; z-index: 10; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #999; cursor: pointer; transition: 0.3s; font-size: 0.8rem; }
+        .nav-item span { font-size: 1.4rem; margin-bottom: 2px; }
+        .nav-item.active { color: var(--active-color); transform: translateY(-3px); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="content-area">
+        
+        <div id="page-chat">
+            <div class="header"><h1>🌿 心屿</h1></div>
+            <div class="chat-box" id="chat-box">
+                <div class="message ai-message">你好呀！这里是心屿。☁️ 累了就进来歇歇吧。</div>
+            </div>
+            <div class="input-area">
+                <input type="text" id="user-input" placeholder="说点什么..." autocomplete="off">
+                <button class="send-btn" onclick="sendMessage()">发送</button>
+            </div>
+        </div>
+
+        <div id="page-game">
+            <h2 style="color: #888; margin-bottom: 40px;">静心木鱼</h2>
+            <div class="muyu-container" onclick="knockMuyu()">
+                <div class="muyu-icon">🧘</div>
+            </div>
+            <div class="merit-counter">今日功德: <span id="merit-count">0</span></div>
+            <p style="color: #aaa; font-size: 0.8rem; margin-top: 50px;">点击打坐小人，积攒赛博功德</p>
+        </div>
+
+        <div id="page-quote">
+            <div class="quote-card">
+                <div class="quote-text" id="quote-content">正在提取来自宇宙的治愈能量...✨</div>
+                <button class="refresh-btn" onclick="getQuote()">抽取今日治愈</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('chat')"><span>💬</span>聊天</div>
+        <div class="nav-item" onclick="switchTab('game')"><span>🐟</span>木鱼</div>
+        <div class="nav-item" onclick="switchTab('quote')"><span>💌</span>治愈</div>
+    </div>
+</div>
+
+<script>
+    // --- 页面切换逻辑 ---
+    function switchTab(tabName) {
+        document.getElementById('page-chat').style.display = 'none';
+        document.getElementById('page-game').style.display = 'none';
+        document.getElementById('page-quote').style.display = 'none';
+        
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => item.classList.remove('active'));
+
+        document.getElementById('page-' + tabName).style.display = 'flex';
+        
+        if(tabName === 'chat') navItems[0].classList.add('active');
+        if(tabName === 'game') navItems[1].classList.add('active');
+        if(tabName === 'quote') {
+            navItems[2].classList.add('active');
+            if(document.getElementById('quote-content').innerText.includes('正在提取')) getQuote();
+        }
+    }
+
+    // --- 聊天逻辑 ---
+    async function sendMessage() {
+        const input = document.getElementById('user-input');
+        const box = document.getElementById('chat-box');
+        const text = input.value.trim();
+        if(!text) return;
+        box.innerHTML += `<div class="message user-message">${text}</div>`;
+        input.value = '';
+        box.scrollTop = box.scrollHeight;
+        try {
+            const res = await fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: text})
+            });
+            const data = await res.json();
+            box.innerHTML += `<div class="message ai-message">${data.reply || '小屿正在冥想...'}</div>`;
+        } catch(e) {
+            box.innerHTML += `<div class="message ai-message">网络开小差了...</div>`;
+        }
+        box.scrollTop = box.scrollHeight;
+    }
+    document.getElementById('user-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
+
+
+    // --- 真实木鱼音效逻辑 (音频池技术 - 解决延迟与积压) ---
+    let merit = 0;
+    const audioUrl = "/static/muyu.mp3"; 
+    
+    // 创建“音频池”：预先准备 6 个播放器轮流工作
+    const POOL_SIZE = 6;
+    const audioPool = [];
+    let poolIndex = 0;
+
+    // 网页加载时立即初始化音频池
+    for(let i = 0; i < POOL_SIZE; i++) {
+        const audio = new Audio(audioUrl);
+        audio.preload = 'auto'; // 强制预加载
+        audioPool.push(audio);
+    }
+
+    function knockMuyu() {
+        // 1. 界面反馈 (立刻执行，保证手感)
+        merit++;
+        document.getElementById('merit-count').innerText = merit;
+
+        const icon = document.querySelector('.muyu-icon');
+        icon.style.transform = 'scale(0.95)';
+        setTimeout(() => icon.style.transform = 'scale(1)', 50);
+
+        const container = document.querySelector('.muyu-container');
+        const popup = document.createElement('div');
+        popup.className = 'merit-popup';
+        popup.innerText = '功德 +1';
+        container.appendChild(popup);
+        setTimeout(() => popup.remove(), 800);
+
+        // 2. 播放声音 (从池子里拿一个，绝不等待)
+        try {
+            const currentPlayer = audioPool[poolIndex];
+            
+            // 无论上一次播没播完，强制从头开始
+            if (currentPlayer) {
+                currentPlayer.currentTime = 0;
+                currentPlayer.play().catch(e => {
+                    // 忽略浏览器初次交互前的自动播放拦截警告
+                    console.log("Audio play blocked or waiting for interaction");
+                });
+            }
+
+            // 指针移向下一个播放器
+            poolIndex = (poolIndex + 1) % POOL_SIZE;
+        } catch(e) {
+            console.error("Audio pool error:", e);
+        }
+    }
+
+    // --- 语录逻辑 ---
+    async function getQuote() {
+        const textElem = document.getElementById('quote-content');
+        textElem.style.opacity = 0.5;
+        try {
+            const res = await fetch('/get_quote');
+            const data = await res.json();
+            textElem.innerText = data.quote;
+        } catch(e) {
+            textElem.innerText = "心若向阳，无惧悲伤。☀️";
+        }
+        textElem.style.opacity = 1;
+    }
+</script>
+
+</body>
+</html>
